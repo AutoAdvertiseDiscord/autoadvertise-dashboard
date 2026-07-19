@@ -21,8 +21,6 @@ export function Landing() {
     window.location.href = "/api/auth/discord";
   };
 
-  if (isLoading) return null;
-
   return (
     <div className="min-h-screen bg-background relative overflow-hidden flex flex-col items-center justify-center text-center px-4">
       {/* Ambient background glow */}
