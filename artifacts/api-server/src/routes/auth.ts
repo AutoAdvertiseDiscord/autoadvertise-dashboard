@@ -10,7 +10,14 @@ const CLIENT_ID = process.env.DISCORD_CLIENT_ID!;
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET!;
 
 function getRedirectUri(req: ReturnType<typeof Router>["request"] | any): string {
-  const host = req.get("host") || "";
+  // Explicit override (production / custom domain)
+  if (process.env.REDIRECT_URI) return process.env.REDIRECT_URI;
+  // Replit dev environment — use the stable dev domain
+  if (process.env.REPLIT_DEV_DOMAIN) {
+    return `https://${process.env.REPLIT_DEV_DOMAIN}/api/auth/discord/callback`;
+  }
+  // Generic fallback: trust proxy headers, then Host
+  const host = req.get("x-forwarded-host") || req.get("host") || "";
   const protocol = req.get("x-forwarded-proto") || req.protocol || "https";
   return `${protocol}://${host}/api/auth/discord/callback`;
 }
