@@ -56,7 +56,7 @@ router.post("/license/redeem", requireAuth, async (req, res): Promise<void> => {
   // Redeem the key
   const now = new Date();
   let expiresAt: Date | null = null;
-  if (license.durationDays !== null) {
+  if (license.durationDays != null) {
     expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + license.durationDays);
   }
