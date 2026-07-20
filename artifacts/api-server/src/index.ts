@@ -2,7 +2,6 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { connectMongoDB } from "./lib/mongodb";
 import { resumeActiveAccounts } from "./lib/advertiser";
-import { startBot } from "./bot/index";
 
 const rawPort = process.env["PORT"];
 
@@ -22,10 +21,8 @@ async function main() {
   // Resume any accounts that were running before server restart
   await resumeActiveAccounts();
 
-  // Start Discord bot
-  startBot().catch((err) => {
-    logger.error({ err }, "Bot startup error");
-  });
+  // Note: Discord bot runs separately on Railway — do not start it here
+  // to avoid dual-bot conflicts on the same token.
 
   app.listen(port, (err) => {
     if (err) {
