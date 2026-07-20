@@ -76,6 +76,9 @@ router.get("/auth/discord/callback", async (req, res): Promise<void> => {
     req.session.userId = discordUser.id;
     await createLog(discordUser.id, "User logged in", "info");
 
+    // Redirect back to the frontend (supports cross-domain deployment)
+    const frontendUrl = (process.env.FRONTEND_URL ?? "").replace(/\/$/, "");
+
     // Check if user has license
     if (user.licenseKey) {
       // Check license status
@@ -83,18 +86,19 @@ router.get("/auth/discord/callback", async (req, res): Promise<void> => {
       if (license && license.status === "active") {
         if (license.expiresAt && new Date() > license.expiresAt) {
           await LicenseModel.findByIdAndUpdate(license._id, { status: "expired" });
-          res.redirect("/redeem?reason=expired");
+          res.redirect(`${frontendUrl}/redeem?reason=expired`);
           return;
         }
-        res.redirect("/dashboard");
+        res.redirect(`${frontendUrl}/dashboard`);
         return;
       }
     }
 
-    res.redirect("/redeem");
+    res.redirect(`${frontendUrl}/redeem`);
   } catch (err) {
     req.log.error({ err }, "Discord OAuth callback error");
-    res.redirect("/?error=oauth_failed");
+    const frontendUrl = (process.env.FRONTEND_URL ?? "").replace(/\/$/, "");
+    res.redirect(`${frontendUrl}/?error=oauth_failed`);
   }
 });
 
