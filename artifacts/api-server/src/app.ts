@@ -41,6 +41,12 @@ app.use(cookieParser());
 const SESSION_SECRET = process.env.SESSION_SECRET || "autoadvertise-dev-secret-change-in-production";
 const MONGODB_URI = process.env.MONGODB_URI!;
 
+// Cross-domain when FRONTEND_URL is set (Cloudflare frontend + Replit backend)
+const isCrossDomain = !!process.env.FRONTEND_URL;
+
+// Trust reverse-proxy so cookies are sent correctly behind Replit's infra
+app.set("trust proxy", 1);
+
 app.use(
   session({
     secret: SESSION_SECRET,
@@ -52,10 +58,11 @@ app.use(
       touchAfter: 24 * 3600,
     }),
     cookie: {
-      secure: process.env.NODE_ENV === "production",
+      // SameSite=None + Secure is required for cross-domain cookies
+      secure: isCrossDomain || process.env.NODE_ENV === "production",
       httpOnly: true,
       maxAge: 7 * 24 * 60 * 60 * 1000,
-      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      sameSite: isCrossDomain ? "none" : "lax",
     },
   }),
 );
