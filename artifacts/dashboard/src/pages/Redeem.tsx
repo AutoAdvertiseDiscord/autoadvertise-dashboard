@@ -27,13 +27,15 @@ export function Redeem() {
     setError("");
     if (!key.trim()) return;
     
-    redeem.mutate({ data: { key } }, {
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    redeem.mutate({ data: { key: key.trim().toUpperCase() } }, {
+      onSuccess: async () => {
+        // Await the refetch so AuthGuard sees hasLicense:true before we navigate
+        await queryClient.refetchQueries({ queryKey: ["/api/auth/me"] });
         setLocation("/dashboard");
       },
       onError: (err: any) => {
-        setError(err.error || "Failed to redeem license key");
+        // err is an ApiError — the server JSON body is in err.data
+        setError(err?.data?.error || err?.message || "Failed to redeem license key");
       }
     });
   };
