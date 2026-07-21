@@ -3,20 +3,32 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AutoAdvertise Dashboard API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: license
+    description: License management
+  - name: accounts
+    description: Discord accounts
+  - name: logs
+    description: Activity logs
+  - name: settings
+    description: User settings
+  - name: dashboard
+    description: Dashboard data
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +36,555 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /license/redeem:
+    post:
+      operationId: redeemLicense
+      tags: [license]
+      summary: Redeem a license key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LicenseRedeemInput"
+      responses:
+        "200":
+          description: License redeemed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/License"
+        "400":
+          description: Invalid or already redeemed key
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /license/info:
+    get:
+      operationId: getLicenseInfo
+      tags: [license]
+      summary: Get current user license info
+      responses:
+        "200":
+          description: License details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/License"
+        "404":
+          description: No license found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /accounts:
+    get:
+      operationId: listAccounts
+      tags: [accounts]
+      summary: List all user accounts
+      responses:
+        "200":
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Account"
+    post:
+      operationId: createAccount
+      tags: [accounts]
+      summary: Create a new account
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountInput"
+      responses:
+        "201":
+          description: Account created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+
+  /accounts/{id}:
+    get:
+      operationId: getAccount
+      tags: [accounts]
+      summary: Get account by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Account details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+        "404":
+          description: Account not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateAccount
+      tags: [accounts]
+      summary: Update account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountUpdate"
+      responses:
+        "200":
+          description: Account updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+    delete:
+      operationId: deleteAccount
+      tags: [accounts]
+      summary: Delete account
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Account deleted
+
+  /accounts/{id}/start:
+    post:
+      operationId: startAccount
+      tags: [accounts]
+      summary: Start account auto-advertising
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Account started
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+
+  /accounts/{id}/stop:
+    post:
+      operationId: stopAccount
+      tags: [accounts]
+      summary: Stop account auto-advertising
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Account stopped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Account"
+
+  /accounts/{id}/test:
+    post:
+      operationId: testAccount
+      tags: [accounts]
+      summary: Send a test message
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Test message sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /logs:
+    get:
+      operationId: getLogs
+      tags: [logs]
+      summary: Get activity logs
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: accountId
+          in: query
+          schema:
+            type: string
+        - name: level
+          in: query
+          schema:
+            type: string
+            enum: [info, warn, error, success]
+      responses:
+        "200":
+          description: Activity logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LogList"
+
+  /settings:
+    get:
+      operationId: getSettings
+      tags: [settings]
+      summary: Get user settings
+      responses:
+        "200":
+          description: Settings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+    put:
+      operationId: updateSettings
+      tags: [settings]
+      summary: Update user settings
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdate"
+      responses:
+        "200":
+          description: Settings updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Settings"
+
+  /dashboard/stats:
+    get:
+      operationId: getDashboardStats
+      tags: [dashboard]
+      summary: Get dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    SuccessResponse:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+
+    User:
+      type: object
+      required: [id, discordId, username, avatar, hasLicense, licenseStatus]
+      properties:
+        id:
+          type: string
+        discordId:
+          type: string
+        username:
+          type: string
+        avatar:
+          type: ["string", "null"]
+        hasLicense:
+          type: boolean
+        licenseStatus:
+          type: ["string", "null"]
+          enum: [active, expired, revoked, null]
+        licenseExpiry:
+          type: ["string", "null"]
+        licensePlan:
+          type: ["string", "null"]
+
+    License:
+      type: object
+      required: [id, key, status, plan, createdAt]
+      properties:
+        id:
+          type: string
+        key:
+          type: string
+        status:
+          type: string
+          enum: [pending, active, expired, revoked]
+        plan:
+          type: string
+          enum: [basic, premium, lifetime]
+        createdBy:
+          type: ["string", "null"]
+        redeemedBy:
+          type: ["string", "null"]
+        redeemedByUsername:
+          type: ["string", "null"]
+        expiresAt:
+          type: ["string", "null"]
+        redeemedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        notes:
+          type: ["string", "null"]
+        durationDays:
+          type: ["integer", "null"]
+
+    LicenseRedeemInput:
+      type: object
+      required: [key]
+      properties:
+        key:
+          type: string
+          minLength: 1
+
+    Account:
+      type: object
+      required: [id, name, status, channelIds, messages, cooldown, createdAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          type: string
+          enum: [running, stopped, error, pending]
+        channelIds:
+          type: array
+          items:
+            type: string
+        messages:
+          type: array
+          items:
+            type: string
+        cooldown:
+          type: integer
+          description: Cooldown in seconds between messages
+        imageUrl:
+          type: ["string", "null"]
+        lastMessageAt:
+          type: ["string", "null"]
+        totalMessagesSent:
+          type: integer
+        errorMessage:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    AccountInput:
+      type: object
+      required: [name, discordToken, channelIds, messages, cooldown]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        discordToken:
+          type: string
+          minLength: 1
+        channelIds:
+          type: array
+          items:
+            type: string
+        messages:
+          type: array
+          items:
+            type: string
+        cooldown:
+          type: integer
+          minimum: 1
+        imageUrl:
+          type: string
+
+    AccountUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        discordToken:
+          type: string
+        channelIds:
+          type: array
+          items:
+            type: string
+        messages:
+          type: array
+          items:
+            type: string
+        cooldown:
+          type: integer
+          minimum: 1
+        imageUrl:
+          type: string
+
+    Log:
+      type: object
+      required: [id, action, level, createdAt]
+      properties:
+        id:
+          type: string
+        accountId:
+          type: ["string", "null"]
+        accountName:
+          type: ["string", "null"]
+        action:
+          type: string
+        details:
+          type: ["string", "null"]
+        level:
+          type: string
+          enum: [info, warn, error, success]
+        createdAt:
+          type: string
+
+    LogList:
+      type: object
+      required: [logs, total]
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Log"
+        total:
+          type: integer
+
+    Settings:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+        globalCooldown:
+          type: integer
+          description: Global minimum cooldown in seconds
+        maxAccounts:
+          type: integer
+        notificationsEnabled:
+          type: boolean
+        webhookUrl:
+          type: ["string", "null"]
+
+    SettingsUpdate:
+      type: object
+      properties:
+        globalCooldown:
+          type: integer
+        maxAccounts:
+          type: integer
+        notificationsEnabled:
+          type: boolean
+        webhookUrl:
+          type: string
+
+    DashboardStats:
+      type: object
+      required: [totalAccounts, activeAccounts, stoppedAccounts, errorAccounts, totalMessagesSent, messagesLast24h, licenseStatus, licensePlan, licenseExpiry]
+      properties:
+        totalAccounts:
+          type: integer
+        activeAccounts:
+          type: integer
+        stoppedAccounts:
+          type: integer
+        errorAccounts:
+          type: integer
+        totalMessagesSent:
+          type: integer
+        messagesLast24h:
+          type: integer
+        licenseStatus:
+          type: ["string", "null"]
+        licensePlan:
+          type: ["string", "null"]
+        licenseExpiry:
+          type: ["string", "null"]
+        recentLogs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Log"
