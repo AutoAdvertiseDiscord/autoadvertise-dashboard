@@ -23,3 +23,4 @@ timeoutMs = 20000
 
 [userenv.shared]
 FRONTEND_URL = "https://auto.advertisediscord.workers.dev"
+REDIRECT_URI = "https://aurora-dashboard--bknad.replit.app/api/auth/discord/callback"
