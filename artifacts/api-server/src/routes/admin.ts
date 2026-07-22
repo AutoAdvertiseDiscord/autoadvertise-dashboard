@@ -3,16 +3,7 @@ import LicenseModel from "../models/License";
 import { requireAdmin } from "../lib/auth";
 import { generateLicenseKey, calculateExpiry } from "../lib/keyGenerator";
 import { createLog } from "../models/Log";
-import zod from "zod";
-
 const router: IRouter = Router();
-
-const GenerateKeyBody = zod.object({
-  plan: zod.enum(["basic", "premium", "lifetime"]),
-  durationDays: zod.number().int().positive().nullable().default(null),
-  notes: zod.string().max(500).optional().nullable(),
-  quantity: zod.number().int().min(1).max(50).default(1),
-});
 
 // GET /admin/keys — list all keys (newest first)
 router.get("/admin/keys", requireAdmin, async (req, res): Promise<void> => {
@@ -57,13 +48,18 @@ router.get("/admin/keys", requireAdmin, async (req, res): Promise<void> => {
 
 // POST /admin/keys — generate one or more keys
 router.post("/admin/keys", requireAdmin, async (req, res): Promise<void> => {
-  const parsed = GenerateKeyBody.safeParse(req.body);
-  if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.errors[0]?.message ?? "Invalid input" });
+  const { plan, durationDays, notes, quantity: rawQty } = req.body;
+
+  const validPlans = ["basic", "premium", "lifetime"];
+  if (!validPlans.includes(plan)) {
+    res.status(400).json({ error: "plan must be basic, premium, or lifetime" });
     return;
   }
-
-  const { plan, durationDays, notes, quantity } = parsed.data;
+  if (durationDays !== null && durationDays !== undefined && (typeof durationDays !== "number" || durationDays <= 0)) {
+    res.status(400).json({ error: "durationDays must be a positive number or null" });
+    return;
+  }
+  const quantity = Math.min(50, Math.max(1, parseInt(rawQty) || 1));
   const adminId = req.session.userId!;
 
   // Get admin username from DB
