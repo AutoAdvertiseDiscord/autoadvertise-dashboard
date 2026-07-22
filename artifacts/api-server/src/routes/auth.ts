@@ -3,6 +3,7 @@ import axios from "axios";
 import UserModel from "../models/User";
 import LicenseModel from "../models/License";
 import { createLog } from "../models/Log";
+import { isAdmin } from "../lib/auth";
 
 const router: IRouter = Router();
 
@@ -82,9 +83,14 @@ router.get("/auth/discord/callback", async (req, res): Promise<void> => {
     // Redirect back to the frontend (supports cross-domain deployment)
     const frontendUrl = (process.env.FRONTEND_URL ?? "").replace(/\/$/, "");
 
+    // Admins go straight to dashboard — no license needed
+    if (isAdmin(discordUser.id)) {
+      res.redirect(`${frontendUrl}/dashboard`);
+      return;
+    }
+
     // Check if user has license
     if (user.licenseKey) {
-      // Check license status
       const license = await LicenseModel.findOne({ key: user.licenseKey });
       if (license && license.status === "active") {
         if (license.expiresAt && new Date() > license.expiresAt) {
@@ -144,7 +150,8 @@ router.get("/auth/me", async (req, res): Promise<void> => {
     discordId: user.discordId,
     username: user.username,
     avatar: user.avatar,
-    hasLicense,
+    hasLicense: hasLicense || isAdmin(user.discordId),
+    isAdmin: isAdmin(user.discordId),
     licenseStatus,
     licenseExpiry,
     licensePlan,
